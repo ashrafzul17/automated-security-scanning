@@ -47,3 +47,47 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install bandit
+
+    - name: Run Bandit for Python security scanning
+      run: bandit -r . | tee bandit_report.txt
+
+    - name: Install Terraform
+      run: |
+        sudo apt-get update && sudo apt-get install -y unzip
+        curl -O https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
+        unzip terraform_1.0.0_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+
+    - name: Run Checkov for Terraform security scanning
+      run: |
+        pip install checkov
+        checkov -d . | tee checkov_report.txt
+
+    - name: Upload Bandit report
+      uses: actions/upload-artifact@v2
+      with:
+        name: bandit-report
+        path: bandit_report.txt
+
+    - name: Upload Checkov report
+      uses: actions/upload-artifact@v2
+      with:
+        name: checkov-report
+        path: checkov_report.txt
